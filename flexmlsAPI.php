@@ -244,6 +244,29 @@ class flexmlsAPI {
 
 	}
 
+	function GetOfficeListings($args = array()) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/office/listings", $args, array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+
+	}
+
+	function GetCompanyListings($args = array()) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/company/listings", $args, array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+
+	}
 
 	function GetIDXLinks($tags = "") {
 
