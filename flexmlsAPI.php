@@ -309,6 +309,32 @@ class flexmlsAPI {
 		return $result;
 
 	}
+	
+	
+	function GetListingVideos($id) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/videos", array(), array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+
+	}
+	
+	
+	function GetListingVirtualTours($id) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/virtualtours", array(), array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+
+	}
 
 
 	function GetListings($args = array()) {
