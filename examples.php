@@ -8,6 +8,9 @@ $api = new flexmlsAPI("api_key_goes_here", "api_secret_goes_here");
 // set an ApplicationName which identifies us
 $api->SetApplicationName("PHPAPIExamples/1.0");
 
+// turn developer mode on when using a sandbox account.  Remove this when live
+$api->SetDeveloperMode(true);
+
 // issue the request to authenticate with the API
 $result = $api->Authenticate();
 if ($result === false) {
@@ -160,6 +163,23 @@ echo "<br>\n\n";
 
 
 
+/*
+ * Retrieve a particular listing
+ */
+
+echo "<b>GetListing</b><br>\n";
+$result = $api->GetListing("20110216233803210563000000");
+if ($result === false) {
+	api_error_thrown($api);
+}
+
+echo "<pre>". print_r($result, true) ."</pre><br>\n";
+echo "<br>\n\n";
+
+
+
+
+
 
 
 /*
@@ -168,7 +188,7 @@ echo "<br>\n\n";
  */
 
 echo "<b>GetListingPhotos</b><br>\n";
-$result = $api->GetListingPhotos("20100728162705970089000000");
+$result = $api->GetListingPhotos("20110216233803210563000000");
 if ($result === false) {
 	api_error_thrown($api);
 }
@@ -180,6 +200,25 @@ foreach ($result as $photo) {
 }
 //echo "<pre>". print_r($result, true) ."</pre><br>\n";
 echo "<br>\n\n";
+
+
+
+
+/*
+ * Retrieve information about a particular listing of a particular property
+ * @param string Id of listing
+ * @param string Id of particular photo
+ */
+
+echo "<b>GetListingPhoto</b><br>\n";
+$result = $api->GetListingPhoto("20110216233803210563000000", "20110216234601042574000000");
+if ($result === false) {
+	api_error_thrown($api);
+}
+echo "<pre>". print_r($result, true) ."</pre><br>\n";
+echo "<br>\n\n";
+
+
 
 
 
