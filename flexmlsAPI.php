@@ -93,6 +93,18 @@ class flexmlsAPI {
 		}
 
 	}
+	
+	
+	function GetContact($id) {
+		
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/contacts/{$id}", array(), array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+	}
 
 
 	function GetContacts($tags = "") {
@@ -113,6 +125,7 @@ class flexmlsAPI {
 
 
 	function GetStandardFields() {
+		
 		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/standardfields", array(), array(), $auth = false);
 
 		if ($result === false) {
@@ -244,11 +257,37 @@ class flexmlsAPI {
 		return $result;
 
 	}
+	
+	
+	function GetListingOpenHouse($id, $subid) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/openhouses/{$subid}", array(), array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+
+	}
 
 
 	function GetListingPhotos($id) {
 
 		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/photos", array(), array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+
+	}
+	
+	
+	function GetListingPhoto($id, $subid) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/photos/{$subid}", array(), array(), $auth = false);
 
 		if ($result === false) {
 			return false;
