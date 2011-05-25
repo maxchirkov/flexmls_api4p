@@ -2,9 +2,9 @@
 
 class flexmlsAPI {
 
-	private $api_base 			= "api.developers.flexmls.com";
-	public $last_error_code 	= null;
-	public $last_error_mess 	= null;
+	private $api_base 			= "api.flexmls.com";
+	public $last_error_code		= null;
+	public $last_error_mess		= null;
 	public $api_roles 			= null;
 	private $last_token 		= null;
 	private $last_token_expire 	= null;
@@ -57,6 +57,18 @@ class flexmlsAPI {
 			curl_setopt($this->ch, CURLOPT_STDERR, $this->debug_log);
 		}
 	}
+	
+	
+	function SetDeveloperMode($enable = false) {
+		if ($enable) {
+			$this->api_base = "api.developers.flexmls.com";
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	
 
 	function GetErrors() {
 		if ($this->last_error_code && $this->last_error_mess){
