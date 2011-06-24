@@ -1,8 +1,13 @@
 <?php
 
+/**
+ * flexmls API - PHP client
+ * version 1.3
+ */
+
 class flexmlsAPI {
 
-	private $api_base 			= "api.flexmls.com";
+	public $api_base 			= "api.flexmls.com";
 	public $last_error_code		= null;
 	public $last_error_mess		= null;
 	public $api_roles 			= null;
