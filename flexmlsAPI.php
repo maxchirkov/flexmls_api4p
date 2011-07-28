@@ -7,25 +7,25 @@
 
 class flexmlsAPI {
 
-	public $api_base 			= "api.flexmls.com";
-	public $last_error_code		= null;
-	public $last_error_mess		= null;
-	public $api_roles 			= null;
-	private $last_token 		= null;
-	private $last_token_expire 	= null;
-	private $api_key 			= null;
-	private $api_secret 		= null;
-	private $ch 				= null;
+	public $api_base = "api.flexmls.com";
+	public $last_error_code = null;
+	public $last_error_mess = null;
+	public $api_roles = null;
+	private $last_token = null;
+	private $last_token_expire = null;
+	private $api_key = null;
+	private $api_secret = null;
+	private $ch = null;
 	private $debug_log;
-	private $debug_mode 		= false;
-	private $application_name 	= null;
-	private $api_version 		= "v1";
+	private $debug_mode = false;
+	private $application_name = null;
+	public $api_version = "v1";
 	// pagination vars
-	public $last_count 			= 0;
-	public $page_size 			= 0;
-	public $total_pages 		= 0;
-	public $current_page 		= 0;
-	
+	public $last_count = 0;
+	public $page_size = 0;
+	public $total_pages = 0;
+	public $current_page = 0;
+
 	function __construct($key, $secret) {
 		// set the api key and secret based on passed parameters
 		$this->api_key = $key;
@@ -38,21 +38,55 @@ class flexmlsAPI {
 		curl_setopt($this->ch, CURLOPT_TIMEOUT, 0);
 		curl_setopt($this->ch, CURLOPT_SSL_VERIFYHOST, false);
 		curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, false);
-
 	}
-
 
 	function __destruct() {
 		// clean cURL up
 		curl_close($this->ch);
 	}
 
+	
+	////////////////////////////////////////////////////////////////////
+	//  AUTH FUNCTIONS
+	////////////////////////////////////////////////////////////////////
+
+
+	function Authenticate($force = false) {
+
+		if ($this->last_token == null || $force == true) {
+			$result = $this->MakeAPIRequest("POST", "/{$this->api_version}/session", array(), array(), $auth = true, $force);
+
+			if ($result === false) {
+				$code = $this->last_error_code;
+				$message = $this->last_error_mess;
+				throw new Exception($message, $code, $previous);
+				return false;
+			}
+
+			$this->last_token = $result[0]['AuthToken'];
+			$this->last_token_expire = $result[0]['Expires'];
+		}
+		
+	}
+
+	function GetSystemInfo() {
+
+		$args = array();
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/system", $args, array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result[0];
+		
+	}
 
 	function SetApplicationName($name) {
 		$this->application_name = str_replace(array("\r", "\r\n", "\n"), '', trim($name));
 	}
-	
-	
+
 	function SetDebugMode($mode = false) {
 		$this->debug_mode = $mode;
 		// enable logging if we're in debug mode
@@ -63,7 +97,6 @@ class flexmlsAPI {
 		}
 	}
 	
-	
 	function SetDeveloperMode($enable = false) {
 		if ($enable) {
 			$this->api_base = "api.developers.flexmls.com";
@@ -73,20 +106,20 @@ class flexmlsAPI {
 			return false;
 		}
 	}
-	
 
 	function GetErrors() {
-		if ($this->last_error_code && $this->last_error_mess){
+		if ($this->last_error_code && $this->last_error_mess) {
 			return $this->last_error_code . ' - ' . $this->last_error_mess;
-		} else {
+		}
+		else {
 			return false;
 		}
 	}
 
 	function HasBasicRole() {
 
-		if ( is_array($this->api_roles) ) {
-			if ( in_array('basic', $this->api_roles) ) {
+		if (is_array($this->api_roles)) {
+			if (in_array('basic', $this->api_roles)) {
 				return true;
 			}
 			else {
@@ -96,27 +129,75 @@ class flexmlsAPI {
 		else {
 			return false;
 		}
+		
+	}
 
+	
+	////////////////////////////////////////////////////////////////////
+	//  ACCOUNT FUNCTIONS
+	////////////////////////////////////////////////////////////////////
+	
+	
+	function GetMyAccount() {
+		
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/my/account", array(), array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result[0];
+		
+	}
+		
+	function GetConnectPrefs() {
+
+		$args = array();
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/connect/prefs", $args, array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		$records = array();
+		foreach ($result as $pref) {
+			$records[$pref['Name']] = $pref['Value'];
+		}
+		return $records;
+		
 	}
 	
-	
-	function GetContact($id) {
-		
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/contacts/{$id}", array(), array(), $auth = false);
+	function GetIDXLinks($tags = "") {
+
+		$args = array();
+
+		$tags = trim($tags);
+		if (!empty($tags)) {
+			$args['tags'] = $this->clean_comma_list($tags);
+		}
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/idxlinks", $args, array(), $auth = false);
 
 		if ($result === false) {
 			return false;
 		}
 
 		return $result;
+		
 	}
-
-
+	
+	
+	////////////////////////////////////////////////////////////////////
+	//  CONTACTS FUNCTIONS
+	////////////////////////////////////////////////////////////////////
+	
+	
 	function GetContacts($tags = "") {
 
 		$endpoint = "/{$this->api_version}/contacts";
 		if (!empty($tags)) {
-			$endpoint = "/{$this->api_version}/contacts/tags/".rawurlencode($tags);
+			$endpoint = "/{$this->api_version}/contacts/tags/" . rawurlencode($tags);
 		}
 
 		$result = $this->MakeAPIRequest("GET", $endpoint, array(), array(), $auth = false);
@@ -126,9 +207,31 @@ class flexmlsAPI {
 		}
 
 		return $result;
+		
 	}
+	
+	function SendContact($contact_data) {
+		
+		$args = array();
 
+		$data = array('Contacts' => array($contact_data));
 
+		$result = $this->MakeAPIRequest("POST", "/{$this->api_version}/contacts", $args, $data, $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result[0];
+		
+	}
+	
+	
+	////////////////////////////////////////////////////////////////////
+	//  METADATA FUNCTIONS
+	////////////////////////////////////////////////////////////////////
+	
+	
 	function GetStandardFields() {
 		
 		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/standardfields", array(), array(), $auth = false);
@@ -138,8 +241,241 @@ class flexmlsAPI {
 		}
 
 		return $result[0];
+		
 	}
 
+	function GetStandardFieldList($field) {
+		
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/standardfields/{$field}", array(), array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result[0][$field]['FieldList'];
+		
+	}
+	
+	function GetPropertyTypes() {
+
+		$args = array();
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/propertytypes", $args, array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		$records = array();
+		foreach ($result as $res) {
+			$records[$res['MlsCode']] = $res['MlsName'];
+		}
+
+		return $records;
+		
+	}
+	
+	
+	////////////////////////////////////////////////////////////////////
+	//  SEARCH/LISTING FUNCTIONS
+	////////////////////////////////////////////////////////////////////
+
+
+	function GetListing($id, $args = array()) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}", $args, array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+		
+	}
+
+	function GetListingOpenHouses($id) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/openhouses", array(), array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+		
+	}
+
+	function GetListingPhotos($id) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/photos", array(), array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+		
+	}
+
+	function GetListingDocs($id) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/documents", array(), array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+		
+	}
+
+	function GetListingVirtualTours($id) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/virtualtours", array(), array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+		
+	}
+	
+	function GetListingVideos($id) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/videos", array(), array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+
+	}
+
+	function GetListings($args = array()) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings", $args, array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+		
+	}
+
+	function GetMyListings($args = array()) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/my/listings", $args, array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+		
+	}
+
+	function GetOfficeListings($args = array()) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/office/listings", $args, array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+		
+	}
+
+	function GetCompanyListings($args = array()) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/company/listings", $args, array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+		
+	}
+	
+	
+	////////////////////////////////////////////////////////////////////
+	//  ROSTER FUNCTIONS
+	////////////////////////////////////////////////////////////////////
+	
+	
+	function GetOfficeAgents($id) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/accounts/by/office/{$id}", array(), array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+		
+	}
+	
+	function GetOfficeRoster($args = array()) {
+	
+		$query = "UserType Eq 'Office'";
+		if (array_key_exists('_filter', $args)) {
+			$args['_filter'] .= " And ". $query;
+		}
+		else {
+			$args['_filter'] = $query;
+		}
+		
+		return $this->GetRoster($args);
+		
+	}
+		
+	function GetAgentRoster($args = array()) {
+	
+		$query = "UserType Eq 'Member'";
+		if (array_key_exists('_filter', $args)) {
+			$args['_filter'] .= " And ". $query;
+		}
+		else {
+			$args['_filter'] = $query;
+		}
+		
+		return $this->GetRoster($args);
+		
+	}
+		
+	function GetRoster($args = array()) {
+			
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/accounts", $args, array(), $auth = false);
+		
+		if ($result === false) {
+			return $result;
+		}
+		
+		return $result;
+		
+	}
+	
+	function GetAccountDetails($id) {
+		
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/accounts/{$id}", array(), array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result[0];
+		
+	}
+	
+	
+	////////////////////////////////////////////////////////////////////
+	//  OTHER FUNCTIONS
+	////////////////////////////////////////////////////////////////////
+	
 
 	function GetMarketStats($type, $options = "", $property_type = "", $location_name = "", $location_value = "") {
 
@@ -165,264 +501,9 @@ class flexmlsAPI {
 		}
 
 		return $result[0];
-
+		
 	}
 
-
-	function Authenticate($force = false) {
-
-		if ($this->last_token == null || $force == true) {
-			$result = $this->MakeAPIRequest("POST", "/{$this->api_version}/session", array(), array(), $auth = true, $force);
-
-			if ($result === false) {
-				return false;
-			}
-
-			$this->last_token = $result[0]['AuthToken'];
-			$this->last_token_expire = $result[0]['Expires'];
-		}
-	}
-
-
-	function SendContact($contact_data) {
-		$args = array();
-
-		$data = array('Contacts' => array($contact_data));
-
-		$result = $this->MakeAPIRequest("POST", "/{$this->api_version}/contacts", $args, $data, $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		return $result[0];
-	}
-
-
-	function GetConnectPrefs() {
-
-		$args = array();
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/connect/prefs", $args, array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		$records = array();
-		foreach ($result as $pref) {
-			$records[$pref['Name']] = $pref['Value'];
-		}
-		return $records;
-
-	}
-
-
-	function GetPropertyTypes() {
-
-		$args = array();
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/propertytypes", $args, array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		$records = array();
-		foreach ($result as $res) {
-			$records[$res['MlsCode']] = $res['MlsName'];
-		}
-
-		return $records;
-
-	}
-
-
-	function GetListing($id, $args = array()) {
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}", $args, array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		return $result;
-
-	}
-
-
-	function GetListingOpenHouses($id) {
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/openhouses", array(), array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		return $result;
-
-	}
-	
-	
-	function GetListingOpenHouse($id, $subid) {
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/openhouses/{$subid}", array(), array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		return $result;
-
-	}
-
-
-	function GetListingPhotos($id) {
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/photos", array(), array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		return $result;
-
-	}
-	
-	
-	function GetListingPhoto($id, $subid) {
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/photos/{$subid}", array(), array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		return $result;
-
-	}
-
-
-	function GetListingDocs($id) {
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/documents", array(), array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		return $result;
-
-	}
-	
-	
-	function GetListingVideos($id) {
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/videos", array(), array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		return $result;
-
-	}
-	
-	
-	function GetListingVirtualTours($id) {
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings/{$id}/virtualtours", array(), array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		return $result;
-
-	}
-
-
-	function GetListings($args = array()) {
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/listings", $args, array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		return $result;
-
-	}
-
-	function GetMyListings($args = array()) {
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/my/listings", $args, array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		return $result;
-
-	}
-
-	function GetOfficeListings($args = array()) {
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/office/listings", $args, array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		return $result;
-
-	}
-
-	function GetCompanyListings($args = array()) {
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/company/listings", $args, array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		return $result;
-
-	}
-
-	function GetIDXLinks($tags = "") {
-
-		$args = array();
-
-		$tags = trim($tags);
-		if ( !empty($tags) ) {
-			$args['tags'] = $this->clean_comma_list($tags);
-		}
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/idxlinks", $args, array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		return $result;
-
-	}
-
-
-	function GetSystemInfo() {
-
-		$args = array();
-
-		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/system", $args, array(), $auth = false);
-
-		if ($result === false) {
-			return false;
-		}
-
-		return $result[0];
-
-	}
 
 
 	/*
@@ -434,6 +515,7 @@ class flexmlsAPI {
 	 * @param array $caching array of caching settings. 'enabled' is true/false. 'minutes' defines how long if enabled
 	 * @return mixed Returns array of parsed JSON results if successful.  Returns false if API call fails
 	 */
+
 	function MakeAPIRequest($method, $uri, $args = array(), $data = array(), $is_auth_request = false, $a_retry = false) {
 
 		if (!is_array($args)) {
@@ -444,13 +526,13 @@ class flexmlsAPI {
 
 
 		// start with the basic part of the security string and add to it as we go
-		$sec_string  = "{$this->api_secret}ApiKey{$this->api_key}";
+		$sec_string = "{$this->api_secret}ApiKey{$this->api_key}";
 
 		$post_body = "";
 
 		if ($method == "POST" && count($data) > 0) {
 			// the request is to post some JSON data back to the API (like adding a contact)
-			$post_body = json_encode( array('D' => $data ) );
+			$post_body = json_encode(array('D' => $data));
 		}
 
 		if ($is_auth_request) {
@@ -460,7 +542,7 @@ class flexmlsAPI {
 			$http_parameters['AuthToken'] = $this->last_token;
 
 			// since this isn't an authentication request, add the ServicePath to the security string
-			$sec_string .= "ServicePath". rawurldecode($uri);
+			$sec_string .= "ServicePath" . rawurldecode($uri);
 
 			ksort($http_parameters);
 
@@ -495,15 +577,17 @@ class flexmlsAPI {
 			if (!empty($query_string)) {
 				$query_string .= "&";
 			}
-			$query_string .= $k .'='. rawurlencode($v);
+			$query_string .= $k . '=' . rawurlencode($v);
 		}
 
 		if (!empty($query_string)) {
 			$full_url .= '?' . $query_string;
 		}
 
-		if ($this->debug_mode) echo $full_url . "\n\n";
-		
+		if ($this->debug_mode) {
+			echo $full_url . "\n\n";
+		}
+
 		$request_headers = "";
 
 		curl_setopt($this->ch, CURLOPT_URL, $full_url);
@@ -528,11 +612,13 @@ class flexmlsAPI {
 		$response_body = curl_exec($this->ch);
 
 		if ($this->debug_mode == true) {
-			fwrite($this->debug_log, $response_body ."\n");
+			fwrite($this->debug_log, $response_body . "\n");
 		}
 
-		if ($this->debug_mode) echo $response_body . "\n\n";
-		
+		if ($this->debug_mode) {
+			echo $response_body . "\n\n";
+		}
+
 		// start handling the response
 		$json = json_decode(utf8_encode($response_body), true);
 
@@ -543,21 +629,22 @@ class flexmlsAPI {
 		if (array_key_exists('Code', $json['D'])) {
 			$this->last_error_code = $json['D']['Code'];
 		}
+		
 		if (array_key_exists('Message', $json['D'])) {
 			$this->last_error_mess = $json['D']['Message'];
 		}
 
-		if ( array_key_exists('Pagination', $json['D']) ) {
-			$this->last_count	 = $json['D']['Pagination']['TotalRows'];
-			$this->page_size	 = $json['D']['Pagination']['PageSize'];
-			$this->total_pages	 = $json['D']['Pagination']['TotalPages'];
-			$this->current_page	 = $json['D']['Pagination']['CurrentPage'];
+		if (array_key_exists('Pagination', $json['D'])) {
+			$this->last_count = $json['D']['Pagination']['TotalRows'];
+			$this->page_size = $json['D']['Pagination']['PageSize'];
+			$this->total_pages = $json['D']['Pagination']['TotalPages'];
+			$this->current_page = $json['D']['Pagination']['CurrentPage'];
 		}
 
-		if ( $json['D']['Success'] == true) {
+		if ($json['D']['Success'] == true) {
 			return $json['D']['Results'];
 		}
-		elseif ($a_retry == false && $is_auth_request == false && ($this->last_error_code == 1020 || $this->last_error_code == 1000) ) {
+		elseif ($a_retry == false && $is_auth_request == false && ($this->last_error_code == 1020 || $this->last_error_code == 1000)) {
 			$this->Authenticate(true);
 			$return = $this->MakeAPIRequest($method, $uri, $args, $data, $is_auth_request, $a_retry = true);
 			return $return;
@@ -571,9 +658,8 @@ class flexmlsAPI {
 
 			return false;
 		}
-
+		
 	}
-
 
 	/*
 	 * Take a value and clean it so it can be used as a parameter value in what's sent to the API.
@@ -581,11 +667,12 @@ class flexmlsAPI {
 	 * @param string $var Regular string of text to be cleaned
 	 * @return string Cleaned string
 	 */
+
 	function clean_comma_list($var) {
 
 		$return = "";
 
-		if ( strpos($var, ',') !== false ) {
+		if (strpos($var, ',') !== false) {
 			// $var contains a comma so break it apart into a list...
 			$list = explode(",", $var);
 			// trim the extra spaces and weird characters from the beginning and end of each item in the list...
@@ -599,8 +686,6 @@ class flexmlsAPI {
 		}
 
 		return $return;
-
 	}
-
 
 }
