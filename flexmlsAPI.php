@@ -1,4 +1,14 @@
 <?php
+/**
+ * A PHP wrapper for the flexmls REST API.
+ * 
+ * Version: 0.1
+ *
+ * Source URI: https://github.com/flexmls/flexmls_api4p
+ * Author: (c) Financial Business Systems, Inc.
+ * Author URI: http://flexmls.com
+ * License: Licensed under the Apache License, Version 2.0
+ */
 
 class flexmlsAPI {
 
@@ -14,7 +24,7 @@ class flexmlsAPI {
 	private $debug_log;
 	private $debug_mode 		= false;
 	private $application_name 	= null;
-	private $api_version 		= "v1";
+	protected $api_version 		= "v1";
 	// pagination vars
 	public $last_count 			= 0;
 	public $page_size 			= 0;
@@ -282,6 +292,17 @@ class flexmlsAPI {
 
 		return $result;
 
+	}
+
+	function GetSavedSearches($id = false){   	
+  	
+  		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/savedsearches/{$id}", array(), array(), $auth = false);  	
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
 	}
 
 
