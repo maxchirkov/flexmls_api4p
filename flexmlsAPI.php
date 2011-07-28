@@ -1,8 +1,14 @@
 <?php
 
 /**
- * flexmls API - PHP client
- * version 1.3
+ * A PHP wrapper for the flexmls REST API.
+ *
+ * Version: 1.3
+ *
+ * Source URI: https://github.com/flexmls/flexmls_api4p
+ * Author: (c) Financial Business Systems, Inc.
+ * Author URI: http://flexmls.com
+ * License: Licensed under the Apache License, Version 2.0
  */
 
 class flexmlsAPI {
@@ -178,6 +184,18 @@ class flexmlsAPI {
 		}
 
 		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/idxlinks", $args, array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+		
+	}
+	
+	function GetSavedSearches($id) {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/savedsearches/{$id}", array(), array(), $auth = false);
 
 		if ($result === false) {
 			return false;
