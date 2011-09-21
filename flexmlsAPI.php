@@ -17,8 +17,8 @@ class flexmlsAPI {
 	public $last_error_code = null;
 	public $last_error_mess = null;
 	public $api_roles = null;
-	private $last_token = null;
-	private $last_token_expire = null;
+	public $last_token = null;
+	public $last_token_expire = null;
 	private $api_key = null;
 	private $api_secret = null;
 	private $ch = null;
