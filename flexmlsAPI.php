@@ -193,9 +193,21 @@ class flexmlsAPI {
 		
 	}
 	
-	function GetSavedSearches($id) {
+	function GetSavedSearch($id) {
 
 		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/savedsearches/{$id}", array(), array(), $auth = false);
+
+		if ($result === false) {
+			return false;
+		}
+
+		return $result;
+		
+	}
+
+	function GetSavedSearches() {
+
+		$result = $this->MakeAPIRequest("GET", "/{$this->api_version}/savedsearches", array(), array(), $auth = false);
 
 		if ($result === false) {
 			return false;
